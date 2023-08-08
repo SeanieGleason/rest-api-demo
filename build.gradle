@@ -1,0 +1,71 @@
+plugins {
+    id "java"
+    id "org.asciidoctor.jvm.convert"
+    id "org.springframework.boot"
+    id "io.spring.dependency-management"
+}
+
+group = "com.gleason"
+version = "0.0.1-SNAPSHOT"
+
+java {
+    sourceCompatibility = "17"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${springDocVersion}")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
+}
+
+/*AsciiDoctor */
+
+def snippetsDir = file("${buildDir}/generated-snippets")
+
+clean {
+    delete("src/main/resources/static")
+}
+
+test {
+    systemProperty("org.springframework.restdocs.outputDir", snippetsDir)
+    outputs.dir(snippetsDir)
+}
+
+build {
+    dependsOn("asciiDoctorCopyHtml")
+}
+
+asciidoctor {
+    dependsOn(test)
+
+    inputs.dir(snippetsDir)
+
+    attributes "snippets" : snippetsDir
+
+    doFirst {
+        delete("src/main/resources/static")
+    }
+}
+
+task asciiDoctorCopyHtml(type: Copy){
+    dependsOn(asciidoctor)
+
+    from("build/docs/asciidoc/")
+    into("src/main/resources/static")
+}
+
+bootJar {
+    dependsOn(asciidoctor)
+
+    from("build/docs/asiidoc/")
+    into("BOOT-INF/classes/static")
+}
